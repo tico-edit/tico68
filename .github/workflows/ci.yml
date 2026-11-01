@@ -1,0 +1,34 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  unit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Host tests
+        run: make unit
+
+  build:
+    runs-on: ubuntu-24.04
+    container: ghcr.io/autc04/retro68:latest
+    env:
+      RETRO68: /Retro68-build/toolchain
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build
+        run: make
+
+      - name: Check
+        run: RETRO68=$RETRO68 sh scripts/check-build.sh build/mac
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tico68-800k
+          path: build/mac/tico68-800k.dsk

@@ -1,0 +1,82 @@
+name: release
+
+# main only changes by merging a PR, so a push to main is a merge.
+# If VERSION names a version without a tag, tag the merge commit and
+# publish a release with the 800K disk image attached.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      new: ${{ steps.version.outputs.new }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check version
+        id: version
+        run: |
+          version=$(cat VERSION)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/v$version" >/dev/null; then
+            echo "v$version is already released"
+            echo "new=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "releasing v$version"
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: version
+    if: needs.version.outputs.new == 'true'
+    runs-on: ubuntu-24.04
+    container: ghcr.io/autc04/retro68:latest
+    env:
+      RETRO68: /Retro68-build/toolchain
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build
+        run: make
+
+      - name: Check
+        run: RETRO68=$RETRO68 sh scripts/check-build.sh build/mac
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tico68-800k
+          path: build/mac/tico68-800k.dsk
+          if-no-files-found: error
+
+  # On the runner itself, which comes with gh.
+  release:
+    needs: [version, build]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: tico68-800k
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          gh release create "v$VERSION" tico68-800k.dsk \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "v$VERSION" \
+            --generate-notes
