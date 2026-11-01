@@ -112,6 +112,10 @@ make RETRO68=/path/to/toolchain
 plain HFS, for a Floppy Emu or an emulator: it holds the application and
 this file as a text document.
 
+To release, change `VERSION` in a PR. When it merges, the `release`
+workflow tags the merge commit `vVERSION` and publishes a release with
+the disk image attached.
+
 ## Source
 
 | Where | What |
