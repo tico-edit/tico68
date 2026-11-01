@@ -63,6 +63,15 @@ void app_report_recovery(ConstStr255Param temp)
     StopAlert(132, NULL);
 }
 
+void app_report(const char *text)
+{
+    Str255 a;
+
+    to_pascal(a, text);
+    ParamText(a, "\p", "\p", "\p");
+    StopAlert(133, NULL);
+}
+
 docwin *front_doc(void)
 {
     WindowPtr w = FrontWindow();

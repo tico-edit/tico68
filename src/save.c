@@ -17,6 +17,8 @@
  * is complete, and the caller says where it is.  The cost is room for a
  * second copy of the file while saving.
  *
+ * Save As over another file is different: see save_replacing.
+ *
  * Portable C: the file system comes in as save_ops, so the failures can
  * be tested on the host.
  */
@@ -25,7 +27,7 @@
 #include "tico.h"
 
 typedef struct {
-    int (*write)(void *ctx, const char *buf, unsigned len);
+    unsigned (*write)(void *ctx, const char *buf, unsigned len);
     void *ctx;
     char *buf;
     unsigned cap, used;
@@ -37,7 +39,7 @@ static int out_flush(outbuf *o)
     unsigned n = o->used;
 
     o->used = 0;
-    return n == 0 || o->write(o->ctx, o->buf, n);
+    return n == 0 || o->write(o->ctx, o->buf, n) == n;
 }
 
 static int out_put(void *ctx, const char *buf, unsigned len)
@@ -61,7 +63,7 @@ static int out_put(void *ctx, const char *buf, unsigned len)
 }
 
 static int write_all(const document *d, const save_ops *ops,
-                     int (*write)(void *, const char *, unsigned),
+                     unsigned (*write)(void *, const char *, unsigned),
                      char *buf, unsigned cap, long *total)
 {
     outbuf o;
@@ -124,10 +126,25 @@ int save_in_place(const document *d, const save_ops *ops, char *buf,
     return SAVE_OK;
 }
 
+/* After a failure, with the target as it was. */
+static int drop_temp(const save_ops *ops)
+{
+    return ops->temp_delete(ops->ctx) ? SAVE_FAILED : SAVE_LEFT_TEMP;
+}
+
 /*
  * Save As over another file: the user has chosen to replace it, so
- * unlike a save it doesn't keep its forks.  It goes only once the text
- * is safely on disk.
+ * unlike a save it doesn't keep its forks.  But it stays until the text
+ * is in its place, in case that can't be done:
+ *
+ *  1. Write everything to a temporary file.
+ *  2. Rename the old file out of the way, as a backup.
+ *  3. Rename the temporary file to the name.
+ *  4. Delete the backup.
+ *
+ * If step 3 fails the backup is renamed back.  Should that fail too
+ * there is no file by that name, and the caller must say where both
+ * of the others are.
  */
 int save_replacing(const document *d, const save_ops *ops, char *buf,
                    unsigned cap)
@@ -136,9 +153,14 @@ int save_replacing(const document *d, const save_ops *ops, char *buf,
 
     if (!write_temp(d, ops, buf, cap, &total))
         return SAVE_FAILED;
-    if (!ops->target_replace(ops->ctx))
-        return SAVE_KEPT_TEMP;
-    return SAVE_OK;
+    if (!ops->target_backup(ops->ctx))
+        return drop_temp(ops);
+    if (!ops->temp_install(ops->ctx)) {
+        if (!ops->target_restore(ops->ctx))
+            return SAVE_KEPT_BOTH;
+        return drop_temp(ops);
+    }
+    return ops->backup_delete(ops->ctx) ? SAVE_OK : SAVE_KEPT_BACKUP;
 }
 
 /*

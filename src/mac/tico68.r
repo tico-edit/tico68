@@ -156,6 +156,21 @@ resource 'DITL' (132) {
 	}
 };
 
+/* A replacing save left files behind: what and where they are. */
+resource 'ALRT' (133) {
+	{ 70, 90, 210, 422 }, 133,
+	{ OK, visible, sound1; OK, visible, sound1;
+	  OK, visible, sound1; OK, visible, sound1 },
+	noAutoCenter
+};
+
+resource 'DITL' (133) {
+	{
+		{ 108, 244, 128, 318 }, Button { enabled, "OK" };
+		{ 12, 72, 98, 318 }, StaticText { disabled, "^0" }
+	}
+};
+
 /* Preferences: prefsfile.c counts on the order of these. */
 resource 'DLOG' (128) {
 	{ 50, 106, 290, 406 },

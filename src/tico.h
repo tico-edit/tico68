@@ -299,26 +299,34 @@ int prefs_format(const prefs *p, char *out, int cap);
 
 /*
  * What a safe save needs of the file system.  "Target" is the file being
- * saved over; "temp" is a scratch file on the same volume.  All return 1
+ * saved over; "temp" is a scratch file on the same volume, and "backup"
+ * the target under another name while it is being replaced.  Writes
+ * return how many bytes were written, 0 on an error; the rest return 1
  * on success, 0 on failure.
  */
 typedef struct {
     void *ctx;
     int (*temp_create)(void *ctx);
-    int (*temp_write)(void *ctx, const char *buf, unsigned len);
+    unsigned (*temp_write)(void *ctx, const char *buf, unsigned len);
     int (*temp_close)(void *ctx);
     int (*temp_delete)(void *ctx);
     int (*target_open)(void *ctx, long *length);
     int (*target_set_length)(void *ctx, long length);
-    int (*target_write)(void *ctx, const char *buf, unsigned len);
+    unsigned (*target_write)(void *ctx, const char *buf, unsigned len);
     int (*target_close)(void *ctx);
-    int (*target_replace)(void *ctx);   /* temp takes target's place */
+    int (*target_backup)(void *ctx);    /* fine if there is no target */
+    int (*temp_install)(void *ctx);     /* temp becomes the target */
+    int (*target_restore)(void *ctx);   /* backup becomes the target */
+    int (*backup_delete)(void *ctx);
 } save_ops;
 
 enum {
     SAVE_OK,
     SAVE_FAILED,        /* the file on disk is as it was */
-    SAVE_KEPT_TEMP      /* the file may be damaged; temp holds the text */
+    SAVE_KEPT_TEMP,     /* the file may be damaged; temp holds the text */
+    SAVE_LEFT_TEMP,     /* as SAVE_FAILED, but temp couldn't be deleted */
+    SAVE_KEPT_BOTH,     /* no file: temp holds the text, backup the old file */
+    SAVE_KEPT_BACKUP    /* saved, but backup couldn't be deleted */
 };
 
 int save_in_place(const document *d, const save_ops *ops, char *buf,

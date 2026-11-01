@@ -83,8 +83,12 @@ The text is written to `name.tmp` in the same folder, the original is
 grown if it needs to be, then the original's data fork is overwritten
 and the temporary file deleted. That keeps its other fork and Finder
 information. If something stops it halfway, the temporary file holds
-the text and tico68 says so. Save As over another file replaces that
-file, forks included.
+the text and tico68 says so.
+
+Save As over another file replaces that file, forks included. The old
+file is renamed to `name.bak` until the new one has its name, and goes
+back if that fails. Any file left behind by a failure is named in an
+alert.
 
 ## Long loads can't be interrupted
 

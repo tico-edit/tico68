@@ -102,16 +102,19 @@ static OSErr h_rename(short vref, long dir, ConstStr255Param from,
     return PBHRenameSync(&pb);
 }
 
-static OSErr f_write(short ref, const char *buf, long len)
+static OSErr f_write(short ref, const char *buf, long len, long *done)
 {
     ParamBlockRec pb;
+    OSErr err;
 
     memset(&pb, 0, sizeof pb);
     pb.ioParam.ioRefNum = ref;
     pb.ioParam.ioBuffer = (Ptr)buf;
     pb.ioParam.ioReqCount = len;
     pb.ioParam.ioPosMode = fsAtMark;
-    return PBWriteSync(&pb);
+    err = PBWriteSync(&pb);
+    *done = pb.ioParam.ioActCount;
+    return err;
 }
 
 static OSErr f_close(short ref)
@@ -205,15 +208,20 @@ static void name_text(char *out, ConstStr255Param name)
     out[name[0]] = 0;
 }
 
+static char *quoted(char *p, ConstStr255Param name)
+{
+    p = put_s(p, "\322");
+    name_text(p, name);
+    return put_s(p + name[0], "\323");
+}
+
 static void io_error(const char *verb, ConstStr255Param name, OSErr err)
 {
     char what[80], *p;
 
     p = put_s(what, verb);
-    p = put_s(p, " \322");
-    name_text(p, name);
-    p += name[0];
-    put_s(p, "\323.");
+    p = quoted(put_s(p, " "), name);
+    put_s(p, ".");
     app_error(what, err_text(err),
               verb[6] == 's' ? "Your text is safe in its window." : "");
 }
@@ -394,7 +402,8 @@ typedef struct {
     short vref;
     long dir;
     ConstStringPtr name;
-    Str63 temp;
+    Str63 temp, backup;
+    int has_backup;
     OSType type, creator;
     short temp_ref, target_ref;
     OSErr err;
@@ -407,16 +416,16 @@ static int note(savefs *f, OSErr err)
     return err == noErr;
 }
 
-/* "name.tmp", or "name.tmp2" and so on, within HFS's 31 characters. */
-static void temp_name(savefs *f, int n)
+/* "name.ext", or "name.ext2" and so on, within HFS's 31 characters. */
+static void scratch_name(unsigned char *t, ConstStr255Param name,
+                         const char *ext, int n)
 {
-    unsigned char *t = f->temp;
-    int len = f->name[0];
+    int len = name[0];
 
     if (len > 26)
         len = 26;
-    memcpy(t + 1, f->name + 1, len);
-    memcpy(t + 1 + len, ".tmp", 4);
+    memcpy(t + 1, name + 1, len);
+    memcpy(t + 1 + len, ext, 4);
     len += 4;
     if (n > 1)
         t[++len] = (unsigned char)('0' + n % 10);
@@ -430,7 +439,7 @@ static int fs_temp_create(void *ctx)
     int n;
 
     for (n = 1; n < 10 && err == dupFNErr; n++) {
-        temp_name(f, n);
+        scratch_name(f->temp, f->name, ".tmp", n);
         err = h_create(f->vref, f->dir, f->temp, f->type, f->creator);
     }
     if (!note(f, err))
@@ -439,11 +448,23 @@ static int fs_temp_create(void *ctx)
                           &f->temp_ref));
 }
 
-static int fs_temp_write(void *ctx, const char *buf, unsigned len)
+/* A short count with no error is a failure too, and needs a reason. */
+static unsigned fs_write(savefs *f, short ref, const char *buf, unsigned len)
+{
+    long done = 0;
+    OSErr err = f_write(ref, buf, len, &done);
+
+    if (err == noErr && done != (long)len)
+        err = ioErr;
+    note(f, err);
+    return err == noErr ? len : 0;
+}
+
+static unsigned fs_temp_write(void *ctx, const char *buf, unsigned len)
 {
     savefs *f = ctx;
 
-    return note(f, f_write(f->temp_ref, buf, len));
+    return fs_write(f, f->temp_ref, buf, len);
 }
 
 static int fs_temp_close(void *ctx)
@@ -477,11 +498,11 @@ static int fs_target_set_length(void *ctx, long length)
     return note(f, f_set_eof(f->target_ref, length));
 }
 
-static int fs_target_write(void *ctx, const char *buf, unsigned len)
+static unsigned fs_target_write(void *ctx, const char *buf, unsigned len)
 {
     savefs *f = ctx;
 
-    return note(f, f_write(f->target_ref, buf, len));
+    return fs_write(f, f->target_ref, buf, len);
 }
 
 static int fs_target_close(void *ctx)
@@ -491,20 +512,52 @@ static int fs_target_close(void *ctx)
     return note(f, f_close(f->target_ref));
 }
 
-static int fs_target_replace(void *ctx)
+static int fs_target_backup(void *ctx)
 {
     savefs *f = ctx;
-    OSErr err = h_delete(f->vref, f->dir, f->name);
+    OSErr err = dupFNErr;
+    int n;
 
-    if (err != noErr && err != fnfErr)
-        return note(f, err);
+    for (n = 1; n < 10 && err == dupFNErr; n++) {
+        scratch_name(f->backup, f->name, ".bak", n);
+        err = h_rename(f->vref, f->dir, f->name, f->backup);
+    }
+    if (err == fnfErr)
+        return 1;
+    f->has_backup = err == noErr;
+    return note(f, err);
+}
+
+static int fs_temp_install(void *ctx)
+{
+    savefs *f = ctx;
+
     return note(f, h_rename(f->vref, f->dir, f->temp, f->name));
+}
+
+static int fs_target_restore(void *ctx)
+{
+    savefs *f = ctx;
+
+    return !f->has_backup ||
+           note(f, h_rename(f->vref, f->dir, f->backup, f->name));
+}
+
+/* The new file's catalog entry goes to disk before the old one goes. */
+static int fs_backup_delete(void *ctx)
+{
+    savefs *f = ctx;
+
+    if (!f->has_backup)
+        return 1;
+    flush_volume(f->vref);
+    return note(f, h_delete(f->vref, f->dir, f->backup));
 }
 
 static const save_ops mac_ops = {
     NULL, fs_temp_create, fs_temp_write, fs_temp_close, fs_temp_delete,
     fs_target_open, fs_target_set_length, fs_target_write, fs_target_close,
-    fs_target_replace
+    fs_target_backup, fs_temp_install, fs_target_restore, fs_backup_delete
 };
 
 static void fs_setup(savefs *f, short vref, long dir, ConstStr255Param name,
@@ -521,7 +574,7 @@ static void fs_setup(savefs *f, short vref, long dir, ConstStr255Param name,
 /* Report how a save went, and tidy up after it. */
 static int save_finish(int result, savefs *f, docwin *dw)
 {
-    char msg[STATUS_MAX];
+    char msg[STATUS_MAX], text[200], *p;
     long n;
 
     flush_volume(f->vref);
@@ -533,6 +586,29 @@ static int save_finish(int result, savefs *f, docwin *dw)
         io_error("Can't finish saving", f->name, f->err);
         app_report_recovery(f->temp);
         return 0;
+    }
+    if (result == SAVE_LEFT_TEMP) {
+        io_error("Can't save", f->name, f->err);
+        p = quoted(put_s(text, "The file on disk is as it was. A spare copy "
+                         "of your text is in "), f->temp);
+        put_s(p, ", which you can throw away.");
+        app_report(text);
+        return 0;
+    }
+    if (result == SAVE_KEPT_BOTH) {
+        io_error("Can't finish saving", f->name, f->err);
+        p = quoted(put_s(text, "The old file is now "), f->backup);
+        p = quoted(put_s(p, ", and a complete copy of your text is in "),
+                   f->temp);
+        put_s(p, ", both in the same folder.");
+        app_report(text);
+        return 0;
+    }
+    if (result == SAVE_KEPT_BACKUP) {
+        p = quoted(put_s(text, "Your text is saved, but the file it replaced "
+                         "is still there as "), f->backup);
+        put_s(p, ". You can throw that away.");
+        app_report(text);
     }
     doc_saved(&dw->doc);
     n = dw->doc.buf.count - 1;

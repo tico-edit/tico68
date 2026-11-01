@@ -42,6 +42,7 @@ docwin *front_doc(void);
 void app_command(int cmd, int extend);
 void app_error(const char *what, const char *why, const char *more);
 void app_report_recovery(ConstStr255Param temp);
+void app_report(const char *text);
 
 /* win.c */
 void fonts_changed(void);

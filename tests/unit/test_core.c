@@ -995,14 +995,21 @@ static void test_prefs(void)
 typedef struct {
     char target[FILEMAX];
     long target_len, target_pos;
+    int target_exists;
     char temp[FILEMAX];
     long temp_len;
     int temp_exists;
+    char backup[FILEMAX];
+    long backup_len;
+    int backup_exists;
     long disk_free;             /* bytes */
     /* failure switches */
     int locked;
     int fail_target_write_at;   /* bytes in; -1 for never */
-    int fail_replace;
+    int short_temp_write_at;    /* the same, no error, just a short count */
+    int short_target_write_at;
+    int fail_temp_delete;
+    int fail_backup, fail_install, fail_restore, fail_backup_delete;
     int calls_after_open;
 } fakefs;
 
@@ -1015,16 +1022,19 @@ static int fs_temp_create(void *ctx)
     return 1;
 }
 
-static int fs_temp_write(void *ctx, const char *buf, unsigned len)
+static unsigned fs_temp_write(void *ctx, const char *buf, unsigned len)
 {
     fakefs *f = ctx;
 
     if ((long)len > f->disk_free)
         return 0;
+    if (f->short_temp_write_at >= 0 &&
+        f->temp_len + (long)len > f->short_temp_write_at)
+        len = (unsigned)(f->short_temp_write_at - f->temp_len);
     memcpy(f->temp + f->temp_len, buf, len);
     f->temp_len += len;
     f->disk_free -= len;
-    return 1;
+    return len;
 }
 
 static int fs_temp_close(void *ctx)
@@ -1037,6 +1047,8 @@ static int fs_temp_delete(void *ctx)
 {
     fakefs *f = ctx;
 
+    if (f->fail_temp_delete)
+        return 0;
     f->disk_free += f->temp_len;
     f->temp_exists = 0;
     return 1;
@@ -1065,16 +1077,19 @@ static int fs_target_set_length(void *ctx, long length)
     return 1;
 }
 
-static int fs_target_write(void *ctx, const char *buf, unsigned len)
+static unsigned fs_target_write(void *ctx, const char *buf, unsigned len)
 {
     fakefs *f = ctx;
 
     if (f->fail_target_write_at >= 0 &&
         f->target_pos + (long)len > f->fail_target_write_at)
         return 0;
+    if (f->short_target_write_at >= 0 &&
+        f->target_pos + (long)len > f->short_target_write_at)
+        len = (unsigned)(f->short_target_write_at - f->target_pos);
     memcpy(f->target + f->target_pos, buf, len);
     f->target_pos += len;
-    return 1;
+    return len;
 }
 
 static int fs_target_close(void *ctx)
@@ -1083,22 +1098,63 @@ static int fs_target_close(void *ctx)
     return 1;
 }
 
-static int fs_target_replace(void *ctx)
+static int fs_target_backup(void *ctx)
 {
     fakefs *f = ctx;
 
-    if (f->fail_replace)
+    if (f->fail_backup)
+        return 0;
+    if (!f->target_exists)
+        return 1;
+    memcpy(f->backup, f->target, f->target_len);
+    f->backup_len = f->target_len;
+    f->backup_exists = 1;
+    f->target_exists = 0;
+    return 1;
+}
+
+static int fs_temp_install(void *ctx)
+{
+    fakefs *f = ctx;
+
+    if (f->fail_install)
         return 0;
     memcpy(f->target, f->temp, f->temp_len);
     f->target_len = f->temp_len;
+    f->target_exists = 1;
     f->temp_exists = 0;
+    return 1;
+}
+
+static int fs_target_restore(void *ctx)
+{
+    fakefs *f = ctx;
+
+    if (f->fail_restore)
+        return 0;
+    if (!f->backup_exists)
+        return 1;
+    memcpy(f->target, f->backup, f->backup_len);
+    f->target_len = f->backup_len;
+    f->target_exists = 1;
+    f->backup_exists = 0;
+    return 1;
+}
+
+static int fs_backup_delete(void *ctx)
+{
+    fakefs *f = ctx;
+
+    if (f->fail_backup_delete)
+        return 0;
+    f->backup_exists = 0;
     return 1;
 }
 
 static const save_ops fake_ops = {
     NULL, fs_temp_create, fs_temp_write, fs_temp_close, fs_temp_delete,
     fs_target_open, fs_target_set_length, fs_target_write, fs_target_close,
-    fs_target_replace
+    fs_target_backup, fs_temp_install, fs_target_restore, fs_backup_delete
 };
 
 static void fs_init(fakefs *f, const char *contents, long free_space)
@@ -1106,8 +1162,11 @@ static void fs_init(fakefs *f, const char *contents, long free_space)
     memset(f, 0, sizeof *f);
     f->target_len = (long)strlen(contents);
     memcpy(f->target, contents, f->target_len);
+    f->target_exists = 1;
     f->disk_free = free_space;
     f->fail_target_write_at = -1;
+    f->short_temp_write_at = -1;
+    f->short_target_write_at = -1;
 }
 
 static void test_save(void)
@@ -1179,11 +1238,47 @@ static void test_save(void)
            "0123456789012345678901234567890123456789\r");
     doc_free(&d);
 
+    /* a short write with no error: the same, for each file */
+    load_str(&d, "0123456789012345678901234567890123456789\r");
+    fs_init(&f, "orig\r", 1000);
+    f.short_temp_write_at = 20;
+    check_int("short temp", save_in_place(&d, &ops, io, sizeof io),
+              SAVE_FAILED);
+    check_bytes("short temp unchanged", f.target, f.target_len, "orig\r", 5);
+    check_int("short temp deleted", f.temp_exists, 0);
+
+    fs_init(&f, "orig\r", 1000);
+    f.short_target_write_at = 20;
+    check_int("short target", save_in_place(&d, &ops, io, sizeof io),
+              SAVE_KEPT_TEMP);
+    check_int("short target temp kept", f.temp_exists, 1);
+    check_bytes("short target temp complete", f.temp, f.temp_len,
+                "0123456789012345678901234567890123456789\r", 41);
+
+    fs_init(&f, "orig\r", 1000);
+    f.short_temp_write_at = 20;
+    check_int("short replace", save_replacing(&d, &ops, io, sizeof io),
+              SAVE_FAILED);
+    check_bytes("short replace unchanged", f.target, f.target_len,
+                "orig\r", 5);
+    check_int("short replace no backup", f.backup_exists, 0);
+    doc_free(&d);
+
     /* Save As over another file */
     load_str(&d, "replacement\r");
     fs_init(&f, "victim\r", 1000);
     check_int("replace", save_replacing(&d, &ops, io, sizeof io), SAVE_OK);
     check_bytes("replaced", f.target, f.target_len, "replacement\r", 12);
+    check_int("replace no temp", f.temp_exists, 0);
+    check_int("replace no backup", f.backup_exists, 0);
+
+    /* the same with nothing there to replace */
+    fs_init(&f, "", 1000);
+    f.target_exists = 0;
+    check_int("replace nothing", save_replacing(&d, &ops, io, sizeof io),
+              SAVE_OK);
+    check_bytes("replace nothing wrote", f.target, f.target_len,
+                "replacement\r", 12);
 
     fs_init(&f, "victim\r", 5);
     check_int("replace full", save_replacing(&d, &ops, io, sizeof io),
@@ -1192,11 +1287,70 @@ static void test_save(void)
                 "victim\r", 7);
     check_int("replace full no temp", f.temp_exists, 0);
 
+    /* can't move the old file aside */
     fs_init(&f, "victim\r", 1000);
-    f.fail_replace = 1;
-    check_int("replace fails", save_replacing(&d, &ops, io, sizeof io),
-              SAVE_KEPT_TEMP);
-    check_int("replace fails keeps temp", f.temp_exists, 1);
+    f.fail_backup = 1;
+    check_int("backup fails", save_replacing(&d, &ops, io, sizeof io),
+              SAVE_FAILED);
+    check_bytes("backup fails unchanged", f.target, f.target_len,
+                "victim\r", 7);
+    check_int("backup fails target", f.target_exists, 1);
+    check_int("backup fails no temp", f.temp_exists, 0);
+
+    fs_init(&f, "victim\r", 1000);
+    f.fail_backup = f.fail_temp_delete = 1;
+    check_int("backup fails, temp stuck",
+              save_replacing(&d, &ops, io, sizeof io), SAVE_LEFT_TEMP);
+    check_bytes("temp stuck unchanged", f.target, f.target_len,
+                "victim\r", 7);
+    check_int("temp stuck reported", f.temp_exists, 1);
+
+    /* can't rename the new one into place: the old one comes back */
+    fs_init(&f, "victim\r", 1000);
+    f.fail_install = 1;
+    check_int("install fails", save_replacing(&d, &ops, io, sizeof io),
+              SAVE_FAILED);
+    check_int("install fails target", f.target_exists, 1);
+    check_bytes("install fails restored", f.target, f.target_len,
+                "victim\r", 7);
+    check_int("install fails no backup", f.backup_exists, 0);
+    check_int("install fails no temp", f.temp_exists, 0);
+
+    fs_init(&f, "victim\r", 1000);
+    f.fail_install = f.fail_temp_delete = 1;
+    check_int("install fails, temp stuck",
+              save_replacing(&d, &ops, io, sizeof io), SAVE_LEFT_TEMP);
+    check_bytes("restored, temp stuck", f.target, f.target_len,
+                "victim\r", 7);
+    check_int("restored, temp reported", f.temp_exists, 1);
+
+    fs_init(&f, "", 1000);
+    f.target_exists = 0;
+    f.fail_install = 1;
+    check_int("install fails, no old file",
+              save_replacing(&d, &ops, io, sizeof io), SAVE_FAILED);
+    check_int("no old file, none made", f.target_exists, 0);
+
+    /* and it can't: nothing is lost, and both files are there */
+    fs_init(&f, "victim\r", 1000);
+    f.fail_install = f.fail_restore = 1;
+    check_int("restore fails", save_replacing(&d, &ops, io, sizeof io),
+              SAVE_KEPT_BOTH);
+    check_int("restore fails backup", f.backup_exists, 1);
+    check_bytes("restore fails old file", f.backup, f.backup_len,
+                "victim\r", 7);
+    check_int("restore fails temp", f.temp_exists, 1);
+    check_bytes("restore fails new text", f.temp, f.temp_len,
+                "replacement\r", 12);
+
+    /* saved, with the old file left over */
+    fs_init(&f, "victim\r", 1000);
+    f.fail_backup_delete = 1;
+    check_int("backup stuck", save_replacing(&d, &ops, io, sizeof io),
+              SAVE_KEPT_BACKUP);
+    check_bytes("backup stuck saved", f.target, f.target_len,
+                "replacement\r", 12);
+    check_int("backup stuck reported", f.backup_exists, 1);
     doc_free(&d);
 }
 

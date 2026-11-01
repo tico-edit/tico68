@@ -35,6 +35,7 @@ FILE_DOS, FILE_UNIX, FILE_MAC = 172, 188, 156
 FILE_QUIT, FILE_SAVE = 220, 92
 EDIT_PREFS = 252
 SAVE_BUTTON = (371, 186)
+REPLACE_BUTTON = {"6": (169, 203), "7": (330, 165)}     # Yes, or Replace
 DONT_SAVE_BUTTON = (153, 186)
 LEGACY_RADIO = (142, 87)
 MODERN_RADIO = (142, 105)
@@ -163,6 +164,34 @@ def session(m):
     m.key("Return")
     time.sleep(2)
     m.save("06-saved-new")
+    m.cmd("w")
+    time.sleep(0.5)
+
+    # Save As over another file, with its usual backup name taken: the
+    # backup has to find another, and that file must be left alone.
+    for name, text in (("over.txt.bak", "keep me"), ("over.txt", "victim")):
+        m.cmd("n")
+        time.sleep(1)
+        m.type(text)
+        m.cmd("s")
+        time.sleep(1.5)
+        m.type(name)
+        m.key("Return")
+        time.sleep(2)
+        m.cmd("w")
+        time.sleep(0.5)
+    m.cmd("n")
+    time.sleep(1)
+    m.type("replacement")
+    m.cmd("s")
+    time.sleep(1.5)
+    m.type("over.txt")
+    m.key("Return")
+    time.sleep(1.5)
+    m.save("06a-replace-prompt")
+    m.click(*REPLACE_BUTTON[SYSTEM])
+    time.sleep(2)
+    m.save("06b-replaced")
     m.cmd("w")
     time.sleep(0.5)
 
@@ -430,7 +459,15 @@ def verify(work):
         t, c, data, rsrc = d.macbinary("clip.txt")
         check("paste into another document", data == b"beta\r", repr(data))
 
-        leftovers = [n for n in d.names() if n.endswith(".tmp")]
+        t, c, data, rsrc = d.macbinary("over.txt")
+        check("Save As replaced the file", data == b"replacement\r",
+              repr(data))
+        t, c, data, rsrc = d.macbinary("over.txt.bak")
+        check("taken backup name left alone", data == b"keep me\r",
+              repr(data))
+
+        leftovers = [n for n in d.names()
+                     if n.endswith((".tmp", ".bak2"))]
         check("no temporary files left", not leftovers, repr(leftovers))
     return want
 
