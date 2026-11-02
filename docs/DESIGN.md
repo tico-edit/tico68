@@ -109,22 +109,10 @@ The program name/title bar at the top of the editing area and shortcut help at t
 
 **Both bars are independently configurable**:
 
-- `Automatic` (default until explicitly changed)
-- `Always show`
+- `Always show` (default)
 - `Always hide`
 
-Automatic display is decided using the **actual available editing viewport dimensions**, not simply the model or physical screen size. Suggested initial policy:
-
-| Typical screen/viewport | Automatic title bar | Automatic shortcut bar |
-| --- | --- | --- |
-| Macintosh Plus, 512 × 342 | Hide | Hide |
-| Color Classic, 512 × 384 | Hide | Hide |
-| 640 × 480 with sufficiently large editor window | Show | Show |
-| 832 × 624 or larger with sufficiently large editor window | Show | Show |
-
-**These are starting heuristics, not immutable resolution cutoffs.** Account for the menu bar, native title bar, window borders, scroll bars, selected font, and available text rows. Consider a minimum useful number of editing rows before showing decorations. Recompute on resize in Automatic mode, using hysteresis if necessary to avoid flicker near the threshold.
-
-An explicit Show/Hide choice takes precedence irrespective of window size. Preferences are global, persist across launches, and remain independent of the active keyboard profile. A native window title continues to identify the file even when the internal tico title bar is hidden. The bars should never be necessary to discover core commands because those remain accessible through menus.
+The choice applies irrespective of window size. Preferences are global, persist across launches, and remain independent of the active keyboard profile. A native window title continues to identify the file even when the internal tico title bar is hidden. The bars should never be necessary to discover core commands because those remain accessible through menus.
 
 The shortcut bar must display correct shortcuts for the selected profile. If a bar would not fit horizontally, show fewer shortcuts rather than clipping or misleading the user.
 
@@ -214,8 +202,8 @@ Preferences must persist on disk without relying on PRAM. At minimum:
 | Preference | Values | Initial default |
 | --- | --- | --- |
 | Keybinding profile | tico legacy / tico modern / Macintosh | Macintosh (proposed; user-selectable) |
-| Internal tico title bar | Automatic / Show / Hide | Automatic |
-| Internal tico shortcut bar | Automatic / Show / Hide | Automatic |
+| Internal tico title bar | Show / Hide | Show |
+| Internal tico shortcut bar | Show / Hide | Show |
 | Document font | Available fixed-width faces | Monaco |
 | Document font size | Supported point sizes | 9 pt |
 
@@ -238,7 +226,7 @@ Under Mini vMac configured as Macintosh Plus/4 MB:
 - Start and operate on System 6 and System 7.0.1.
 - Open, edit, save, and switch between several documents.
 - Test all keyboard modes; menus work even in legacy mode.
-- Resize windows and inspect automatic bar visibility.
+- Resize windows and inspect the bars.
 - Confirm fixed-width text, scrolling, cursor placement, and selection.
 - Verify Finder metadata/resource fork behavior with representative files.
 
@@ -247,11 +235,11 @@ Under Mini vMac configured as Macintosh Plus/4 MB:
 On **wombat**:
 
 - Check startup time, input responsiveness, redraw performance, and memory use.
-- Confirm comfortable use at 512 × 342 with both internal bars automatically hidden.
+- Confirm comfortable use at 512 × 342 with both internal bars shown and with both hidden.
 - Edit and save files on its BlueSCSI data volume without corruption.
 - Test System 6 and System 7.0.1.
 
-On **chimera** (or another later Macintosh), verify larger-window behavior, automatic bars, clipboard, and 68k emulator compatibility. Color Classic testing is desirable when hardware becomes available; do not block the first release on it.
+On **chimera** (or another later Macintosh), verify larger-window behavior, the bars, clipboard, and 68k emulator compatibility. Color Classic testing is desirable when hardware becomes available; do not block the first release on it.
 
 ## 14. Build, packaging, and distribution
 
@@ -272,7 +260,7 @@ On **chimera** (or another later Macintosh), verify larger-window behavior, auto
 - Three selectable keyboard profiles, including confirmed legacy page bindings.
 - Detect and preserve CR/CRLF/LF; per-document **File → Text Format** override.
 - Fixed-width font (default Monaco 9 point).
-- Independently configurable internal title and shortcut bars, including automatic size-based behavior.
+- Independently configurable internal title and shortcut bars.
 - Correct Macintosh file metadata/resource fork handling and recoverable I/O errors.
 - System 6 and 7.0.1 operation on a physical Macintosh Plus.
 
@@ -289,7 +277,7 @@ On **chimera** (or another later Macintosh), verify larger-window behavior, auto
 
 1. What are the precise definitions of tico's **legacy vs modern** bindings, and how should original Meta sequences map to the Macintosh keyboard?
 2. Which Shortcut and menu accelerators are conflict-free under each profile, especially when the legacy profile uses ⌘V for Page Down?
-3. What viewport-height/visible-row thresholds work best for automatic bar visibility without oscillation on resize?
+3. ~~What viewport-height/visible-row thresholds work best for automatic bar visibility without oscillation on resize?~~ Dropped: the bars no longer have an automatic setting.
 4. Should the full text format be shown in the native window title, a minimal status indicator, or only as a checked menu item?
 5. What is the best classic Mac safe-save strategy for maintaining Finder metadata and resource forks while minimizing risk of data loss?
 6. How should MacRoman glyph display interact with raw 8-bit byte preservation for files authored on DOS/Unix systems?
@@ -306,7 +294,7 @@ The initial release is accepted when a single 68000-compatible binary:
 4. Allows changing the current document's format through **File → Text Format**, applying it on save without changing other documents.
 5. Supports tico legacy, tico modern, and Macintosh shortcut profiles; **⌘Y is Page Up and ⌘V is Page Down in legacy mode**.
 6. Uses a fixed-width font by default and offers font selection among monospaced options.
-7. Allows separate Auto/Show/Hide preferences for tico's title and shortcut bars; Auto yields a compact usable display on a 512 × 342 screen and shows the bars in sufficiently large windows.
+7. Allows separate Show/Hide preferences for tico's title and shortcut bars, both shown by default; hiding them yields a compact usable display on a 512 × 342 screen.
 8. Preserves existing file metadata/resource forks as designed, and does not lose the in-memory buffer after recoverable file errors.
 9. Can be built with Retro68 on Linux and delivered as a usable classic Macintosh disk image.
 10. Has documented usage, configuration, intentional differences from tico/tico16, building, and test coverage.

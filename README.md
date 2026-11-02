@@ -59,18 +59,18 @@ All the tables are in [docs/KEYBINDINGS.md](docs/KEYBINDINGS.md).
 ## Preferences
 
 Edit → Preferences… also sets tico's title bar and shortcut bar,
-separately, to Auto, Show or Hide. Auto shows a bar when the window has
-at least 32 rows and hides it below 30, so a window on a 512 × 342 screen
-uses every row for text and a large one looks like tico. The Font menu
-lists the fixed-width fonts and sizes; the default is Monaco 9.
+separately, to Always show or Always hide. Both show by default; hiding
+them gives their rows to the text, which counts on a 512 × 342 screen.
+The Font menu lists the fixed-width fonts and sizes; the default is
+Monaco 9.
 
 Settings are in a small text file, `tico68 Prefs`, in the Preferences
 folder, or the System Folder under System 6:
 
 ```
 profile=mac
-title=auto
-shortcuts=auto
+title=show
+shortcuts=show
 font=Monaco
 size=9
 ```

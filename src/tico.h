@@ -259,14 +259,8 @@ const char *profile_name(int profile);
 /* ------------------------------------------------------------------ */
 /* bars.c: tico's optional title and shortcut bars.                     */
 
-enum { BAR_AUTO, BAR_SHOW, BAR_HIDE };
+enum { BAR_SHOW, BAR_HIDE, BAR_COUNT };
 
-/* Automatic mode leaves at least this many text rows, with hysteresis. */
-#define BAR_ROWS_SHOW 32
-#define BAR_ROWS_HIDE 30
-
-int bar_visible(int setting, int was_on, int height, int bar_height,
-                int line_height);
 void bar_title(char *out, int cols, const char *name, int modified);
 
 typedef struct {

@@ -68,10 +68,9 @@ as the cursor moves past the edge.
 
 ## The bars and the status line
 
-The two bars are optional, and hidden by default on a small screen: see
-Preferences in the README. nano's status line is the strip beside the
-horizontal scroll bar. Bar text is always Monaco 9, with a ⌘ drawn in
-place of `^`.
+The two bars are optional, and shown by default: see Preferences in the
+README. nano's status line is the strip beside the horizontal scroll
+bar. Bar text is always Monaco 9, with a ⌘ drawn in place of `^`.
 
 ## A trailing Ctrl+Z is kept, out of sight
 

@@ -173,15 +173,15 @@ resource 'DITL' (133) {
 
 /* Preferences: prefsfile.c counts on the order of these. */
 resource 'DLOG' (128) {
-	{ 50, 106, 290, 406 },
+	{ 50, 106, 272, 406 },
 	dBoxProc, invisible, noGoAway, 0, 200, "", noAutoCenter
 };
 
 resource 'DITL' (200) {
 	{
-		{ 206, 206, 226, 280 }, Button { enabled, "OK" };
-		{ 206, 118, 226, 192 }, Button { enabled, "Cancel" };
-		{ 200, 200, 232, 286 }, UserItem { disabled };
+		{ 188, 206, 208, 280 }, Button { enabled, "OK" };
+		{ 188, 118, 208, 192 }, Button { enabled, "Cancel" };
+		{ 182, 200, 214, 286 }, UserItem { disabled };
 
 		{ 10, 16, 26, 200 }, StaticText { disabled, "Keyboard shortcuts:" };
 		{ 28, 28, 46, 200 }, RadioButton { enabled, "tico legacy" };
@@ -189,16 +189,14 @@ resource 'DITL' (200) {
 		{ 64, 28, 82, 200 }, RadioButton { enabled, "Macintosh" };
 
 		{ 90, 16, 106, 140 }, StaticText { disabled, "Title bar:" };
-		{ 108, 28, 126, 132 }, RadioButton { enabled, "Automatic" };
-		{ 126, 28, 144, 132 }, RadioButton { enabled, "Always show" };
-		{ 144, 28, 162, 132 }, RadioButton { enabled, "Always hide" };
+		{ 108, 28, 126, 132 }, RadioButton { enabled, "Always show" };
+		{ 126, 28, 144, 132 }, RadioButton { enabled, "Always hide" };
 
 		{ 90, 160, 106, 290 }, StaticText { disabled, "Shortcut bar:" };
-		{ 108, 172, 126, 276 }, RadioButton { enabled, "Automatic" };
-		{ 126, 172, 144, 276 }, RadioButton { enabled, "Always show" };
-		{ 144, 172, 162, 276 }, RadioButton { enabled, "Always hide" };
+		{ 108, 172, 126, 276 }, RadioButton { enabled, "Always show" };
+		{ 126, 172, 144, 276 }, RadioButton { enabled, "Always hide" };
 
-		{ 170, 16, 196, 290 }, StaticText { disabled,
+		{ 152, 16, 178, 290 }, StaticText { disabled,
 			"The document font is in the Font menu." }
 	}
 };

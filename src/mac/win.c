@@ -133,20 +133,16 @@ void win_layout(docwin *dw)
     const Rect *r = port_rect(dw);
     document *d = &dw->doc;
     int width = r->right - r->left, height = r->bottom - r->top;
-    int bottom = r->bottom - SBAR + 1, top = r->top, avail;
+    int bottom = r->bottom - SBAR + 1, top = r->top;
     int strip_right, hbar_w = width - SBAR + 1;
     int title_h = bar_h + 1, keys_h = bar_h * 2 + 2;
 
-    avail = height - SBAR + 1;
-    dw->title_on = bar_visible(app_prefs.title_bar, dw->title_on, avail,
-                               title_h, line_h);
+    dw->title_on = app_prefs.title_bar == BAR_SHOW;
     if (dw->title_on) {
-        avail -= title_h;
         SetRect(&dw->title, r->left, top, r->right - SBAR + 1, top + title_h);
         top += title_h;
     }
-    dw->bar_on = bar_visible(app_prefs.shortcut_bar, dw->bar_on, avail,
-                             keys_h, line_h);
+    dw->bar_on = app_prefs.shortcut_bar == BAR_SHOW;
     if (dw->bar_on) {
         SetRect(&dw->keys, r->left, bottom - keys_h, r->right - SBAR + 1,
                 bottom);

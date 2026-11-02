@@ -26,7 +26,7 @@ typedef struct docwin {
 
     /* layout */
     ControlHandle vbar, hbar;
-    int title_on, bar_on;       /* tico's bars, as last decided */
+    int title_on, bar_on;       /* tico's bars, as laid out */
     Rect title, text, keys, strip;
 
     /* what is on the screen */

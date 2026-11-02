@@ -115,8 +115,8 @@ void prefs_store(const prefs *p)
 enum {
     ITEM_OK = 1, ITEM_CANCEL, ITEM_OUTLINE,
     ITEM_KEYS = 5,              /* three radio buttons, after a label */
-    ITEM_TITLE = 9,             /* and again */
-    ITEM_BAR = 13               /* and again */
+    ITEM_TITLE = 9,             /* two, after another */
+    ITEM_BAR = 12               /* and again */
 };
 
 static pascal void outline_item(DialogPtr dlg, short item)
@@ -133,14 +133,14 @@ static pascal void outline_item(DialogPtr dlg, short item)
     (void)item;
 }
 
-static void set_group(DialogPtr dlg, int first, int chosen)
+static void set_group(DialogPtr dlg, int first, int count, int chosen)
 {
     short type;
     Handle h;
     Rect r;
     int i;
 
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < count; i++) {
         GetDialogItem(dlg, first + i, &type, &h, &r);
         SetControlValue((ControlHandle)h, i == chosen);
     }
@@ -159,21 +159,21 @@ void prefs_dialog(void)
         return;
     GetDialogItem(dlg, ITEM_OUTLINE, &type, &h, &r);
     SetDialogItem(dlg, ITEM_OUTLINE, type, (Handle)outline_item, &r);
-    set_group(dlg, ITEM_KEYS, keys);
-    set_group(dlg, ITEM_TITLE, title);
-    set_group(dlg, ITEM_BAR, bar);
+    set_group(dlg, ITEM_KEYS, PROFILE_COUNT, keys);
+    set_group(dlg, ITEM_TITLE, BAR_COUNT, title);
+    set_group(dlg, ITEM_BAR, BAR_COUNT, bar);
     ShowWindow(dlg);
     while (item != ITEM_OK && item != ITEM_CANCEL) {
         ModalDialog(NULL, &item);
-        if (item >= ITEM_KEYS && item < ITEM_KEYS + 3) {
+        if (item >= ITEM_KEYS && item < ITEM_KEYS + PROFILE_COUNT) {
             keys = item - ITEM_KEYS;
-            set_group(dlg, ITEM_KEYS, keys);
-        } else if (item >= ITEM_TITLE && item < ITEM_TITLE + 3) {
+            set_group(dlg, ITEM_KEYS, PROFILE_COUNT, keys);
+        } else if (item >= ITEM_TITLE && item < ITEM_TITLE + BAR_COUNT) {
             title = item - ITEM_TITLE;
-            set_group(dlg, ITEM_TITLE, title);
-        } else if (item >= ITEM_BAR && item < ITEM_BAR + 3) {
+            set_group(dlg, ITEM_TITLE, BAR_COUNT, title);
+        } else if (item >= ITEM_BAR && item < ITEM_BAR + BAR_COUNT) {
             bar = item - ITEM_BAR;
-            set_group(dlg, ITEM_BAR, bar);
+            set_group(dlg, ITEM_BAR, BAR_COUNT, bar);
         }
     }
     DisposeDialog(dlg);

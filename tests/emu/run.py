@@ -40,10 +40,11 @@ DONT_SAVE_BUTTON = (153, 186)
 LEGACY_RADIO = (142, 87)
 MODERN_RADIO = (142, 105)
 MAC_RADIO = (142, 123)
-TITLE_AUTO, TITLE_SHOW = (142, 167), (142, 185)
-KEYS_AUTO, KEYS_SHOW = (286, 167), (286, 185)
+TITLE_SHOW, TITLE_HIDE = (142, 167), (142, 185)
+KEYS_SHOW, KEYS_HIDE = (286, 167), (286, 185)
+TITLE_H = 13
 VBAR_PAGE_DOWN = (498, 250)
-CARET_MOVES, CARET_ROWS = 14, 20
+CARET_MOVES, CARET_ROWS = 14, 18
 
 failures = []
 SYSTEM = "7"
@@ -322,7 +323,7 @@ def caret(m):
     move lands in, so the pauses step across the blink."""
     open_file(m, "long.txt")
     time.sleep(2)
-    win = find_window(m)
+    win = text_origin(m)
     m.save("40-caret-start")
     stale = set()
     row = 0
@@ -378,10 +379,23 @@ def find_window(m):
     raise RuntimeError("no active window")
 
 
+def text_origin(m):
+    """Where the front window's text starts, under tico's title bar."""
+    x, y = find_window(m)
+    return x, y + TITLE_H
+
+
+def title_bar_shown(m, win):
+    """tico's title bar is inverted, so its row is mostly black."""
+    img = m.shot().convert("L")
+    x, y = win
+    return sum(1 for i in range(x, 512) if img.getpixel((i, y + 1)) < 128) > 150
+
+
 def mouse_and_clipboard(m):
     m.cmd("n")
     time.sleep(1)
-    WIN = find_window(m)
+    WIN = text_origin(m)
     m.type("alpha beta")
     m.key("Return")
     m.type("gamma delta")
@@ -432,18 +446,14 @@ def mouse_and_clipboard(m):
 
 
 def appearance(m):
-    # both bars on, on a screen that wouldn't choose them
+    # both bars are on from the start, on any screen
     m.cmd("n")
     time.sleep(1)
-    m.menu(EDIT_X, EDIT_PREFS)
-    time.sleep(1.5)
-    m.click(*TITLE_SHOW)
-    m.click(*KEYS_SHOW)
-    m.key("Return")
-    time.sleep(2)
+    win = find_window(m)
     m.type("bars on")
     time.sleep(1)
     m.save("34-both-bars")
+    check("title bar shown by default", title_bar_shown(m, win))
     # the Font menu
     m.move(162, 8)
     m.xdo("mousedown", 1)
@@ -458,11 +468,19 @@ def appearance(m):
     m.save("36-resized-narrow")
     m.menu(EDIT_X, EDIT_PREFS)
     time.sleep(1.5)
-    m.click(*TITLE_AUTO)
-    m.click(*KEYS_AUTO)
+    m.click(*TITLE_HIDE)
+    m.click(*KEYS_HIDE)
     m.key("Return")
     time.sleep(2)
-    m.save("37-bars-auto")
+    m.save("37-bars-hidden")
+    check("title bar hidden when asked", not title_bar_shown(m, win))
+    m.menu(EDIT_X, EDIT_PREFS)
+    time.sleep(1.5)
+    m.save("38-bars-preferences")
+    m.click(*TITLE_SHOW)
+    m.click(*KEYS_SHOW)
+    m.key("Return")
+    time.sleep(2)
     m.cmd("w")
     time.sleep(1)
     m.click(*DONT_SAVE_BUTTON)
