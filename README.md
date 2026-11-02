@@ -134,3 +134,6 @@ the disk image attached.
 ## License
 
 [LICENSE](LICENSE), as for tico16.
+
+The application icon is Tico the Toucan, by Pretianahart, redrawn in
+black and white from the art on [ticoedit.org](https://ticoedit.org/mascot.html).
