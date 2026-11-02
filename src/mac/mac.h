@@ -31,6 +31,7 @@ typedef struct docwin {
 
     /* what is on the screen */
     int caret_on;
+    Rect caret_at;              /* where, while caret_on */
     long caret_when;
     long drawn_top, drawn_left;
 } docwin;

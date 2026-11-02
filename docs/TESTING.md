@@ -34,8 +34,9 @@ in `DIR`.
 Mini vMac runs on its own Xvfb display. SDL needs `WAYLAND_DISPLAY`
 unset and `SDL_VIDEODRIVER=x11` or the window opens on the real desktop;
 `tests/emu/macemu.py` sees to that. Super is ⌘ and Alt is Option. The
-checks after a run read the data disk with hfsutils, so they are about
-the bytes and Finder information actually written:
+checks read the data disk with hfsutils after the run, so they are about
+the bytes and Finder information actually written, except the caret's,
+which read the screen during it:
 
 - edits to CR files, and CR kept; a CRLF file converted to LF without
   touching another open document;
@@ -46,6 +47,8 @@ the bytes and Finder information actually written:
   across launches, modern menu labels;
 - the mouse: drag, double-click, cut and paste, a clipboard paste into
   another document, resizing, Window menu, Font menu;
+- the caret left behind by no move, across its blink, and not drawn
+  while it's scrolled out of view;
 - no temporary files left.
 
 Run by hand, not in `run.py`: a document double-clicked in the Finder

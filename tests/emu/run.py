@@ -42,6 +42,8 @@ MODERN_RADIO = (142, 105)
 MAC_RADIO = (142, 123)
 TITLE_AUTO, TITLE_SHOW = (142, 167), (142, 185)
 KEYS_AUTO, KEYS_SHOW = (286, 167), (286, 185)
+VBAR_PAGE_DOWN = (498, 250)
+CARET_MOVES, CARET_ROWS = 14, 20
 
 failures = []
 SYSTEM = "7"
@@ -300,6 +302,58 @@ def session(m):
     m.save("24-modern-persisted")
     m.move(EDIT_X, 330)
     m.xdo("mouseup", 1)
+    time.sleep(0.5)
+
+    caret(m)
+
+
+def caret_bars(m, win, skip=None):
+    """Rows, other than skip, with a bar in the margin where a caret in
+    the first column is drawn.  Nothing else marks that strip of pixels."""
+    img = m.shot().convert("L")
+    x, y = win
+    return [row for row in range(CARET_ROWS) if row != skip and
+            any(img.getpixel((x + 3, y + row * 11 + k)) < 128
+                for k in range(11))]
+
+
+def caret(m):
+    """The caret must not be left behind, whichever part of its blink a
+    move lands in, so the pauses step across the blink."""
+    open_file(m, "long.txt")
+    time.sleep(2)
+    win = find_window(m)
+    m.save("40-caret-start")
+    stale = set()
+    row = 0
+    for i in range(CARET_MOVES):
+        m.key("Down")
+        row += 1
+        time.sleep(0.07 * (i % 7))
+        stale.update(caret_bars(m, win, skip=row))
+    m.save("41-caret-moved")
+    check("no caret left behind by moving", not stale, repr(sorted(stale)))
+
+    # Scrolled away from the caret, nothing should show across a blink,
+    # and coming back shouldn't leave anything either.
+    m.click(*VBAR_PAGE_DOWN)
+    m.click(*VBAR_PAGE_DOWN)
+    time.sleep(0.5)
+    stale = set(caret_bars(m, win))
+    time.sleep(0.4)
+    stale.update(caret_bars(m, win))
+    m.save("42-caret-out-of-view")
+    check("no caret while it is out of view", not stale, repr(sorted(stale)))
+    # the view lands wherever it likes, so all that's known is one bar
+    m.key("Down")
+    bars = set()
+    for _ in range(6):
+        time.sleep(0.15)
+        bars.update(caret_bars(m, win))
+    m.save("43-caret-back")
+    check("one caret on coming back", len(bars) <= 1, repr(sorted(bars)))
+    m.cmd("w")
+    time.sleep(1)
 
 
 def cell(col, row, origin=(4, 40)):
