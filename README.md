@@ -101,7 +101,7 @@ You need [Retro68](https://github.com/autc04/Retro68), CMake, and a C
 compiler for the host tests.
 
 ```
-make                     # build/mac/tico68-800k.dsk, plus tico68.bin and .dsk
+make                     # build/mac/tico68-800k.dsk, plus tico68.bin
 make unit                # the portable code's tests, on the host
 make test                # those, then checks on the build
 make emu                 # drive the application under Mini vMac

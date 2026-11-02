@@ -23,4 +23,7 @@ sed "s/@VERSION@/$(cat VERSION)/" docs/ReadMe.txt | tr '\n' '\r' > "$BUILD/ReadM
 hfs hcopy -r "$BUILD/ReadMe.txt" ":Read Me"
 hfs hattrib -t TEXT -c Tc68 ":Read Me"
 hfs humount
+# Retro68's own image has only the application, and is too easily mistaken
+# for this one
+rm -f "$BUILD/tico68.dsk"
 echo "wrote $OUT"
