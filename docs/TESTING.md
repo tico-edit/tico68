@@ -25,8 +25,8 @@ python3 tests/emu/run.py --system 7 --keep DIR
 ```
 
 `make emu` runs it for System 7. It needs Mini vMac built as a Plus with
-4 MB at `~/opt/minivmac/git` with `vMac.ROM` in its `src`, Xvfb, xdotool,
-hfsutils, Python with Pillow, and a bootable HFS image with
+4 MB, with `minivmac` and `vMac.ROM` in `~/opt/minivmac/git/run`, Xvfb,
+xdotool, hfsutils, Python with Pillow, and a bootable HFS image with
 `:System Folder` for System 6 and `:System Folder 7.0.1` for System 7.
 `BOOT_DSK` names the image; only a copy of it is used. Screenshots land
 in `DIR`.
