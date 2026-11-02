@@ -25,16 +25,19 @@ python3 tests/emu/run.py --system 6 --keep DIR
 python3 tests/emu/run.py --system 7 --keep DIR
 ```
 
-`make emu` runs it for System 7. It needs Mini vMac built as a Plus with
-4 MB, with `minivmac` and `vMac.ROM` in `~/opt/minivmac/git/run`, Xvfb,
-xdotool, hfsutils, Python with Pillow, and a bootable HFS image with
-`:System Folder` for System 6 and `:System Folder 7.0.1` for System 7.
-`BOOT_DSK` names the image; only a copy of it is used. Screenshots land
-in `DIR`.
+`make emu` runs it for System 7. It needs `macman` with the ROM `plus-v3`
+and the system images `system-6.0.8` and `system-7.0.1` registered, Xvfb,
+xdotool, hfsutils, and Python with Pillow. Each run has macman make a
+throwaway Plus with 4 MB from the registered image, deletes any `tico68
+Prefs` from that machine's disk, and removes the machine at the end, so
+your own machines aren't touched. macman compiles that build of Mini
+vMac the first time. Screenshots land in `DIR`.
 
-Mini vMac runs on its own Xvfb display. SDL needs `WAYLAND_DISPLAY`
-unset and `SDL_VIDEODRIVER=x11` or the window opens on the real desktop;
-`tests/emu/macemu.py` sees to that. Super is ⌘ and Alt is Option. The
+The emulator runs on its own Xvfb display. macman's Mini vMac is a plain
+X11 program, where Alt is ⌘ and Super is Option, and the Mac's screen
+starts at (260, 217) inside the window's 4 pixel border;
+`tests/emu/macemu.py` sees to all that, and quits with Mini vMac's own
+Ctrl-Q so that macman doesn't report the run as abnormal. The
 checks read the data disk with hfsutils after the run, so they are about
 the bytes and Finder information actually written, except the caret's,
 which read the screen during it:

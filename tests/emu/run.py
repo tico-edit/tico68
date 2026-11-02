@@ -4,9 +4,8 @@ then check what it left on disk with hfsutils.
 
 Usage: run.py [--system 6|7] [--keep DIR]
 
-Needs the boot disk from macplus-pram-r's tools/make-emulator-disk.sh
-(BOOT_DSK, or ~/dev/macplus-pram-r/images/wombat-hd.dsk), which is copied,
-never written.  Screenshots go in the work directory.
+Needs macman, with the ROM and system images named in macemu.py registered.
+Each run uses a throwaway machine.  Screenshots go in the work directory.
 """
 
 import argparse
@@ -26,10 +25,9 @@ import mkfixtures  # noqa: E402
 ROOT = os.path.dirname(os.path.dirname(HERE))
 RETRO68 = os.environ.get("RETRO68",
                          os.path.expanduser("~/opt/retro68/git/toolchain"))
-BOOT = os.environ.get("BOOT_DSK", os.path.expanduser(
-    "~/dev/macplus-pram-r/images/wombat-hd.dsk"))
 
 # Where things are on the 512 x 342 screen.
+DATA_DISK = {"6": (472, 116), "7": (472, 104)}      # the white of its label
 FILE_X, EDIT_X, GO_X = 50, 92, 130
 FILE_DOS, FILE_UNIX, FILE_MAC = 172, 188, 156
 FILE_QUIT, FILE_SAVE = 220, 92
@@ -43,6 +41,7 @@ MAC_RADIO = (142, 123)
 TITLE_SHOW, TITLE_HIDE = (142, 167), (142, 185)
 KEYS_SHOW, KEYS_HIDE = (286, 167), (286, 185)
 TITLE_H = 13
+BOOT_TIMEOUT = 120
 VBAR_PAGE_DOWN = (498, 250)
 CARET_MOVES, CARET_ROWS = 14, 18
 
@@ -90,6 +89,14 @@ class Disk:
         return self.run("hls", "-1").stdout.decode("mac_roman").split("\n")
 
 
+def forget_preferences(boot, scratch):
+    """A System that has run tico68 remembers how: start from the defaults."""
+    with Disk(boot, scratch) as d:
+        for name in (":System Folder:tico68 Prefs",
+                     ":System Folder:Preferences:tico68 Prefs"):
+            subprocess.run(["hdel", name], env=d.env, capture_output=True)
+
+
 def open_file(m, name):
     m.cmd("o")
     time.sleep(1.5)
@@ -99,9 +106,23 @@ def open_file(m, name):
     time.sleep(1.5)
 
 
+def wait_for_finder(m):
+    """How long a boot takes depends on the System and its disk, so wait for
+    the last thing it does: the data disk's icon on the desktop."""
+    x, y = DATA_DISK[SYSTEM]
+    deadline = time.time() + BOOT_TIMEOUT
+    while time.time() < deadline:
+        patch = m.shot().crop((x - 3, y - 3, x + 4, y + 4)).convert("L")
+        if patch.getextrema()[0] == 255:
+            time.sleep(2)
+            return
+        time.sleep(0.5)
+    raise RuntimeError("the data disk never reached the desktop")
+
+
 def launch(m):
     """Open the data disk, and start tico68 from it."""
-    m.click(473, 115, repeat=2)
+    m.click(*DATA_DISK[SYSTEM], repeat=2)
     time.sleep(4)
     start_app(m)
 
@@ -272,7 +293,7 @@ def session(m):
     m.save("19-legacy-saved")
 
     # Meta: Command-Option-/ to the last line, and back with Esc then \
-    m.cmd("slash", "Alt_L")
+    m.cmd("slash", macemu.OPTION)
     time.sleep(1)
     m.save("20-meta-last-line")
     m.key("Escape")
@@ -556,17 +577,9 @@ def main():
     os.makedirs(work, exist_ok=True)
     scratch = os.path.join(work, "hfs")
     os.makedirs(scratch, exist_ok=True)
-    boot = os.path.join(work, "boot.dsk")
-    subprocess.run(["cp", "--reflink=auto", BOOT, boot], check=True)
     env = dict(os.environ, HOME=scratch)
     env["PATH"] = os.path.join(RETRO68, "bin") + ":" + env["PATH"]
     os.environ["PATH"] = env["PATH"]
-
-    subprocess.run(["hmount", boot], env=env, check=True,
-                   stdout=subprocess.DEVNULL)
-    folder = ":System Folder" if args.system == "6" else ":System Folder 7.0.1"
-    subprocess.run(["hattrib", "-b", folder], env=env, check=True)
-    subprocess.run(["humount"], env=env, check=True)
 
     data = os.path.join(work, "data.dsk")
     subprocess.run([sys.executable, os.path.join(HERE, "mkfixtures.py"),
@@ -578,10 +591,13 @@ def main():
                    env=env, check=True)
     subprocess.run(["humount"], env=env, check=True)
 
-    with macemu.Mac(work, [boot, data]) as m:
-        time.sleep(16)
-        m.save("00-booted")
+    def prepare(boot):
+        forget_preferences(boot, scratch)
+
+    with macemu.Mac(work, args.system, [data], prepare=prepare) as m:
         try:
+            wait_for_finder(m)
+            m.save("00-booted")
             session(m)
         finally:
             m.save("99-end")
