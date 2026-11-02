@@ -30,12 +30,26 @@ hfs() {
 
 hfs hmount "$IMAGE" >/dev/null
 listing=$(hfs hls -l)
+hfs hcopy -r ":Read Me" "$BUILD/ReadMe.check" || bad "can't read Read Me"
 hfs humount
 
 echo "$listing" | grep -q 'APPL/Tc68.* tico68$' ||
     bad "no application tico68 of type APPL, creator Tc68"
 echo "$listing" | grep -q 'TEXT/Tc68.* Read Me$' ||
     bad "no Read Me"
+
+# tico68 shows the Read Me as it is, so: CR line endings, plain ASCII so that
+# nothing depends on a font's high characters, and short enough for a window,
+# since lines don't wrap.
+[ "$(tr -dc '\n' < "$BUILD/ReadMe.check" | wc -c)" -eq 0 ] ||
+    bad "Read Me has LF line endings"
+tr '\r' '\n' < "$BUILD/ReadMe.check" > "$BUILD/ReadMe.lines"
+! LC_ALL=C grep -q '[^ -~]' "$BUILD/ReadMe.lines" ||
+    bad "Read Me has something other than printable ASCII"
+! grep -q '.\{73\}' "$BUILD/ReadMe.lines" ||
+    bad "Read Me has a line over 72 columns"
+! grep -q '@VERSION@' "$BUILD/ReadMe.lines" ||
+    bad "Read Me still has @VERSION@"
 
 # Anything a 68020 or later has that a 68000 doesn't. An emulator set to
 # a later model would run these, and a Plus would not.  Scaled index

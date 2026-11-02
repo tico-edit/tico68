@@ -110,7 +110,9 @@ make RETRO68=/path/to/toolchain
 
 `RETRO68` defaults to `~/opt/retro68/git/toolchain`. The 800K image is
 plain HFS, for a Floppy Emu or an emulator: it holds the application and
-this file as a text document.
+`docs/ReadMe.txt` as a document that opens in it. That file is for reading
+in tico68, so it is plain ASCII of at most 72 columns; when the keys,
+preferences or limits here change, change it too.
 
 To release, change `VERSION` in a PR. When it merges, the `release`
 workflow tags the merge commit `vVERSION` and publishes a release with
