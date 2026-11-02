@@ -2,7 +2,7 @@ name: release
 
 # main only changes by merging a PR, so a push to main is a merge.
 # If VERSION names a version without a tag, tag the merge commit and
-# publish a release with the 800K disk image attached.
+# publish a release with the 800K disk image and the StuffIt archive attached.
 
 on:
   push:
@@ -59,9 +59,41 @@ jobs:
           path: build/mac/tico68-800k.dsk
           if-no-files-found: error
 
+      - name: StuffIt archive
+        run: make sit
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tico68-sit
+          path: |
+            build/mac/tico68.sit
+            build/mac/tico68.bin
+            build/mac/ReadMe.txt
+          if-no-files-found: error
+
+  # On the runner itself, where unar is a package away: it's what checks the
+  # archive, independently of what wrote it.
+  sit:
+    needs: [version, build]
+    if: needs.version.outputs.new == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: tico68-sit
+          path: build/mac
+
+      - name: Install The Unarchiver
+        run: sudo apt-get update && sudo apt-get install -y unar
+
+      - name: Check
+        run: python3 scripts/check-sit.py build/mac
+
   # On the runner itself, which comes with gh.
   release:
-    needs: [version, build]
+    needs: [version, build, sit]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -70,12 +102,16 @@ jobs:
         with:
           name: tico68-800k
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: tico68-sit
+
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.version.outputs.version }}
         run: |
-          gh release create "v$VERSION" tico68-800k.dsk \
+          gh release create "v$VERSION" tico68-800k.dsk tico68.sit \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "v$VERSION" \
