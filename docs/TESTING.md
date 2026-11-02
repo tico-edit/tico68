@@ -14,8 +14,9 @@
   out of memory.
 
 `make test` also runs `scripts/check-build.sh`: the image is 800K, the
-application is `APPL`/`Tc68`, the Read Me is `TEXT`/`Tc68` in CR, ASCII
-and 72 columns, and the disassembly has no 68020 instructions.
+application is `APPL`/`Tc68`, the `vers` resource matches `VERSION`, the
+Read Me is `TEXT`/`Tc68` in CR, ASCII and 72 columns, and the disassembly
+has no 68020 instructions.
 
 ## Under Mini vMac
 

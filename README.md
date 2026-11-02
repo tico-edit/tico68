@@ -136,9 +136,10 @@ plain HFS, for a Floppy Emu or an emulator: it holds the application and
 in tico68, so it is plain ASCII of at most 72 columns; when the keys,
 preferences or limits here change, change it too.
 
-To release, change `VERSION` in a PR. When it merges, the `release`
-workflow tags the merge commit `vVERSION` and publishes a release with
-the disk image and the StuffIt archive attached.
+To release, change `VERSION` and the `vers` resource in
+`src/mac/tico68.r` in a PR; `make test` fails if they disagree. When it
+merges, the `release` workflow tags the merge commit `vVERSION` and
+publishes a release with the disk image and the StuffIt archive attached.
 
 ## Source
 
