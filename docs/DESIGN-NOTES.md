@@ -8,9 +8,9 @@ Section 16 of [DESIGN.md](DESIGN.md) left these for implementation.
 2. **Accelerator conflicts.** There are none to resolve, since keys never
    go through `MenuKey`: each profile's table decides, and the letters in
    the menus are labels set from that table.
-3. **Automatic bars.** A bar shows at 32 rows and hides below 30, so a
-   resize near the edge doesn't flicker. Monaco 9 on a 512 × 342 screen
-   is well below that.
+3. **Automatic bars.** Dropped. Each bar is shown or hidden by its
+   preference alone, whatever the window's size, and both show by
+   default.
 4. **Showing the format.** A checked item in the File menu, and in the
    status strip beside the horizontal scroll bar, which costs no row.
 5. **Safe save.** Write `name.tmp`, grow the original, overwrite its data

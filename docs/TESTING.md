@@ -47,6 +47,7 @@ which read the screen during it:
   across launches, modern menu labels;
 - the mouse: drag, double-click, cut and paste, a clipboard paste into
   another document, resizing, Window menu, Font menu;
+- both bars showing by default, and hidden from Preferences;
 - the caret left behind by no move, across its blink, and not drawn
   while it's scrolled out of view;
 - no temporary files left.
@@ -80,8 +81,6 @@ A first run on wombat went well, but the acceptance list below hasn't
 been worked through, and nothing has run on any other real Mac. Under
 Mini vMac the screen is 512 × 342, so:
 
-- bars on Auto in a large window have only been tested in the host code;
-  Show and Hide have been seen on screen, and Auto hiding them;
 - nothing here says how fast a Plus really is, or how it behaves with
   MultiFinder, and memory limits on System 7 have not been measured;
 - the Option-arrow keys and the Esc-then-key form of every binding are
@@ -101,5 +100,5 @@ The design's section 13 has the list. On wombat, under System 6 and
 5. Type quickly in a 100 KB file and scroll through it.
 6. Open as big a file as you actually use and time it.
 
-On chimera, or another later Mac: larger windows and bars on Auto, the
+On chimera, or another later Mac: larger windows, the
 clipboard with another application, 68k emulation if it's a PowerPC.

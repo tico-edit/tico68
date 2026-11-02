@@ -9,13 +9,13 @@
 #include <string.h>
 #include "tico.h"
 
-static const char *const bar_names[] = {"auto", "show", "hide"};
+static const char *const bar_names[] = {"show", "hide"};
 
 void prefs_default(prefs *p)
 {
     p->profile = PROFILE_MAC;
-    p->title_bar = BAR_AUTO;
-    p->shortcut_bar = BAR_AUTO;
+    p->title_bar = BAR_SHOW;
+    p->shortcut_bar = BAR_SHOW;
     strcpy(p->font, "Monaco");
     p->size = 9;
 }
@@ -29,7 +29,7 @@ static void set_bar(int *bar, const char *v, int n)
 {
     int i;
 
-    for (i = 0; i < 3; i++)
+    for (i = 0; i < BAR_COUNT; i++)
         if (same(v, n, bar_names[i]))
             *bar = i;
 }

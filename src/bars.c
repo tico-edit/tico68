@@ -1,34 +1,12 @@
 /*
  * bars.c - tico's title and shortcut bars, as text
  *
- * What to show and whether to show it; src/mac draws the result.
+ * What to show; src/mac draws the result.
  * Portable C.
  */
 
 #include <string.h>
 #include "tico.h"
-
-/*
- * Whether a bar shows, given its setting, whether it showed last time,
- * the height (pixels) available to text with this bar off, the bar's own
- * height, and the document font's line height.  Automatic shows a bar
- * when it would still leave plenty of rows, and goes by rows rather than
- * by screen: a big font on a big screen has them to spare no more than a
- * Plus does.  The two thresholds keep it from flickering as a window is
- * resized around one row.
- */
-int bar_visible(int setting, int was_on, int height, int bar_height,
-                int line_height)
-{
-    int rows;
-
-    if (setting == BAR_SHOW)
-        return 1;
-    if (setting == BAR_HIDE)
-        return 0;
-    rows = (height - bar_height) / line_height;
-    return rows >= (was_on ? BAR_ROWS_HIDE : BAR_ROWS_SHOW);
-}
 
 /* tico's title_bar_text, for one buffer; the version is tico68's. */
 void bar_title(char *out, int cols, const char *name, int modified)

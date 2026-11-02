@@ -887,28 +887,6 @@ static void test_bars(void)
     bar_item items[BAR_MAX];
     int n, i, p, width;
 
-    /* The Plus: a 512 x 342 screen with Monaco 9 (11 pixels a line).
-     * Text area, with 20 for the menu bar, 19 for the title bar and 15
-     * for the scroll bar. */
-    check("Plus title", !bar_visible(BAR_AUTO, 0, 288, 11, 11));
-    check("Plus shortcuts", !bar_visible(BAR_AUTO, 0, 288, 22, 11));
-    check("Color Classic", !bar_visible(BAR_AUTO, 0, 330, 22, 11));
-    check("640x480", bar_visible(BAR_AUTO, 0, 426, 22, 11));
-    check("832x624", bar_visible(BAR_AUTO, 0, 570, 22, 11));
-    /* a big font on a 640x480 has no rows to spare */
-    check("big font", !bar_visible(BAR_AUTO, 0, 426, 22, 18));
-    /* a small window on a big screen neither */
-    check("small window", !bar_visible(BAR_AUTO, 0, 200, 22, 11));
-
-    check("show wins", bar_visible(BAR_SHOW, 0, 100, 22, 11));
-    check("hide wins", !bar_visible(BAR_HIDE, 1, 2000, 22, 11));
-
-    /* around the threshold it holds its state */
-    check("off stays off", !bar_visible(BAR_AUTO, 0, 31 * 11 + 22, 22, 11));
-    check("on stays on", bar_visible(BAR_AUTO, 1, 31 * 11 + 22, 22, 11));
-    check("on turns off", !bar_visible(BAR_AUTO, 1, 29 * 11 + 22, 22, 11));
-    check("off turns on", bar_visible(BAR_AUTO, 0, 32 * 11 + 22, 22, 11));
-
     bar_title(row, 80, "notes", 1);
     check_bytes("title left", row, 13, "  tico68 " VERSION, 13);
     check_bytes("title state", row + 70, 8, "Modified", 8);
@@ -952,12 +930,13 @@ static void test_prefs(void)
 
     prefs_default(&p);
     check_int("default profile", p.profile, PROFILE_MAC);
-    check_int("default title", p.title_bar, BAR_AUTO);
+    check_int("default title", p.title_bar, BAR_SHOW);
+    check_int("default shortcuts", p.shortcut_bar, BAR_SHOW);
     check_int("default size", p.size, 9);
     check("default font", strcmp(p.font, "Monaco") == 0);
 
     p.profile = PROFILE_LEGACY;
-    p.title_bar = BAR_SHOW;
+    p.title_bar = BAR_HIDE;
     p.shortcut_bar = BAR_HIDE;
     strcpy(p.font, "Courier");
     p.size = 12;
@@ -965,7 +944,7 @@ static void test_prefs(void)
     prefs_default(&q);
     prefs_parse(&q, text, n);
     check_int("round profile", q.profile, PROFILE_LEGACY);
-    check_int("round title", q.title_bar, BAR_SHOW);
+    check_int("round title", q.title_bar, BAR_HIDE);
     check_int("round shortcuts", q.shortcut_bar, BAR_HIDE);
     check_int("round size", q.size, 12);
     check("round font", strcmp(q.font, "Courier") == 0);
@@ -975,8 +954,14 @@ static void test_prefs(void)
                 "font=\rjunk\r=x\rfutureoption=1\n", 60);
     check_int("bad profile", q.profile, PROFILE_MAC);
     check_int("bad size", q.size, 9);
-    check_int("bad title", q.title_bar, BAR_AUTO);
+    check_int("bad title", q.title_bar, BAR_SHOW);
     check("bad font", strcmp(q.font, "Monaco") == 0);
+
+    /* a file from when the bars had an automatic setting */
+    prefs_default(&q);
+    prefs_parse(&q, "title=auto\rshortcuts=auto\r", 26);
+    check_int("old auto title", q.title_bar, BAR_SHOW);
+    check_int("old auto shortcuts", q.shortcut_bar, BAR_SHOW);
 
     prefs_default(&q);
     prefs_parse(&q, "\0\377\0\377garbage", 11);
