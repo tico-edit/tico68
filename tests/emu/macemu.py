@@ -28,16 +28,16 @@ class Mac:
         os.makedirs(workdir, exist_ok=True)
         self.fb = os.path.join(workdir, "fb")
         os.makedirs(self.fb, exist_ok=True)
-        rom = os.path.expanduser("~/opt/minivmac/git/src/vMac.ROM")
-        shutil.copy(rom, os.path.join(workdir, "vMac.ROM"))
+        run = os.path.expanduser("~/opt/minivmac/git/run")
+        shutil.copy(os.path.join(run, "vMac.ROM"),
+                    os.path.join(workdir, "vMac.ROM"))
         self.xvfb = subprocess.Popen(
             ["Xvfb", display, "-screen", "0", "1024x768x24", "-fbdir", self.fb],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             start_new_session=True)
         time.sleep(1)
-        emu = os.path.expanduser("~/opt/minivmac/git/bin/minivmac")
         self.emu = subprocess.Popen(
-            [emu] + disks, cwd=workdir, env=self.env,
+            [os.path.join(run, "minivmac")] + disks, cwd=workdir, env=self.env,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             start_new_session=True)
 

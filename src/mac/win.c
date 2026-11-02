@@ -201,20 +201,25 @@ static int caret_rect(docwin *dw, Rect *r)
     return 1;
 }
 
-static void toggle_caret(docwin *dw)
+/*
+ * The document can move while the caret is showing, so hiding it goes by
+ * where it was drawn, not by where the document says it is now.  caret_on
+ * means a bar is on the screen: a caret out of view isn't on.
+ */
+static void show_caret(docwin *dw)
 {
-    Rect r;
-
-    if (caret_rect(dw, &r))
-        InvertRect(&r);
-    dw->caret_on = !dw->caret_on;
+    if (!dw->caret_on && caret_rect(dw, &dw->caret_at)) {
+        InvertRect(&dw->caret_at);
+        dw->caret_on = 1;
+    }
 }
 
 void win_hide_caret(docwin *dw)
 {
     if (dw->caret_on) {
         SetPort((GrafPtr)dw);
-        toggle_caret(dw);
+        InvertRect(&dw->caret_at);
+        dw->caret_on = 0;
     }
 }
 
@@ -470,7 +475,7 @@ void win_refresh(docwin *dw)
     d->dirty[0] = d->dirty[1] = d->dirty[2] = NO_LINE;
 
     if (((WindowPeek)dw)->hilited && !doc_has_selection(d))
-        toggle_caret(dw);
+        show_caret(dw);
     dw->caret_when = TickCount();
 }
 
@@ -801,7 +806,6 @@ void win_idle(docwin *dw)
 {
     Point p;
     long now = TickCount();
-    Rect r;
 
     SetPort((GrafPtr)dw);
     GetMouse(&p);
@@ -813,9 +817,11 @@ void win_idle(docwin *dw)
         win_hide_caret(dw);
         return;
     }
-    if (now - dw->caret_when >= (long)LMGetCaretTime() &&
-        caret_rect(dw, &r)) {
-        toggle_caret(dw);
+    if (now - dw->caret_when >= (long)LMGetCaretTime()) {
+        if (dw->caret_on)
+            win_hide_caret(dw);
+        else
+            show_caret(dw);
         dw->caret_when = now;
     }
 }
