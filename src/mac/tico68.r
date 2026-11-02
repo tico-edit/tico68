@@ -32,7 +32,7 @@ data 'Tc68' (0, "Owner resource") {
 };
 
 resource 'vers' (1) {
-	0x00, 0x01, development, 0x00, verUS, "0.01", "0.01, tico68"
+	0x00, 0x02, development, 0x00, verUS, "0.02", "0.02, tico68"
 };
 
 resource 'FREF' (128) { 'APPL', 0, "" };

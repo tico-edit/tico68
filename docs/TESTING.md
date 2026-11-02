@@ -14,8 +14,9 @@
   out of memory.
 
 `make test` also runs `scripts/check-build.sh`: the image is 800K, the
-application is `APPL`/`Tc68`, the Read Me is `TEXT`/`Tc68` in CR, ASCII
-and 72 columns, and the disassembly has no 68020 instructions.
+application is `APPL`/`Tc68`, the `vers` resource matches `VERSION`, the
+Read Me is `TEXT`/`Tc68` in CR, ASCII and 72 columns, and the disassembly
+has no 68020 instructions.
 
 ## Under Mini vMac
 
@@ -51,6 +52,24 @@ which read the screen during it:
 - the caret left behind by no move, across its blink, and not drawn
   while it's scrolled out of view;
 - no temporary files left.
+
+`make sit` builds the StuffIt archive, and `scripts/check-sit.py
+build/mac` checks it with `lsar` and `unar`, from The Unarchiver, which
+share no code with `sit`: exactly two members, the resource fork and the
+Read Me byte for byte, types, creators and the bundle bit. CI runs both
+and won't publish a release unless they pass. The same input gives the
+same archive; two builds in the CI container were identical.
+
+Expanding it on a Mac is by hand, with StuffIt Expander 4.0.1 under Mini
+vMac on System 6 and 7.0.1: `tico68 Folder` appears with both files, the
+application shows its icon and launches, and `ReadMe.txt` opens in it.
+An archive without type `SIT!` isn't listed by Expander's dialog.
+
+Expander's copy of the resource fork differs from the original in bytes
+48 to 125, in the fork's reserved header, not in any resource. They hold
+the file's name and differ between the two Systems, and the archive has
+zeros there, so they're written on the Mac. What writes them hasn't been
+pinned down, and it hasn't stopped anything working.
 
 Run by hand, not in `run.py`: a document double-clicked in the Finder
 (System 6 and 7), and desk accessories from the Apple menu.
@@ -99,6 +118,8 @@ The design's section 13 has the list. On wombat, under System 6 and
 4. Fill a floppy, then Save, and see the alert with the text still there.
 5. Type quickly in a 100 KB file and scroll through it.
 6. Open as big a file as you actually use and time it.
+7. Fetch `tico68.sit` from an FTP server in binary mode, expand it with
+   StuffIt Expander, and launch `tico68` and open `ReadMe.txt`.
 
 On chimera, or another later Mac: larger windows, the
 clipboard with another application, 68k emulation if it's a PowerPC.

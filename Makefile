@@ -2,6 +2,7 @@
 #   make            the application and an 800K disk image, in build/mac
 #   make unit       the portable code's tests, on the host
 #   make test       unit, then the build's checks
+#   make sit        tico68.sit as well, a classic StuffIt archive; fetches sit
 #   make emu        drive the application under Mini vMac (see docs/TESTING.md)
 #
 # RETRO68 is the toolchain directory, holding bin/ and m68k-apple-macos/.
@@ -10,6 +11,9 @@ RETRO68 ?= $(HOME)/opt/retro68/git/toolchain
 TOOLCHAIN = $(RETRO68)/m68k-apple-macos/cmake/retro68.toolchain.cmake
 
 VERSION := $(shell cat VERSION)
+
+SIT_REPO   = https://github.com/thecloudexpanse/sit
+SIT_COMMIT = 821ae5ea6d0c76ab83ac0942e12f398aa5944250
 
 HOSTCC     = cc
 HOSTCFLAGS = -std=c89 -pedantic -Wall -Wextra -Werror -O1 -g \
@@ -21,7 +25,7 @@ HEADERS = src/tico.h
 
 all: build/mac/tico68-800k.dsk
 
-build/mac/Makefile: CMakeLists.txt
+build/mac/Makefile: CMakeLists.txt VERSION
 	cmake -S . -B build/mac -DCMAKE_TOOLCHAIN_FILE=$(TOOLCHAIN)
 
 build/mac/tico68-800k.dsk: build/mac/Makefile FORCE
@@ -46,8 +50,19 @@ test: unit all
 emu: all
 	python3 tests/emu/run.py
 
+# sit, by commit: it has no releases.  docs/DESIGN-NOTES.md says why this one.
+build/sit/sit:
+	rm -rf build/sit
+	git init -q build/sit
+	git -C build/sit fetch -q --depth 1 $(SIT_REPO) $(SIT_COMMIT)
+	git -C build/sit -c advice.detachedHead=false checkout -q FETCH_HEAD
+	$(MAKE) -C build/sit sit CFLAGS=-D_GNU_SOURCE
+
+sit: all build/sit/sit
+	sh scripts/make-sit.sh build/mac build/sit/sit
+
 clean:
 	rm -rf build
 
-.PHONY: all unit test emu clean FORCE
+.PHONY: all unit test emu sit clean FORCE
 FORCE:

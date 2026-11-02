@@ -38,6 +38,13 @@ echo "$listing" | grep -q 'APPL/Tc68.* tico68$' ||
 echo "$listing" | grep -q 'TEXT/Tc68.* Read Me$' ||
     bad "no Read Me"
 
+# The vers resource is written out by hand, so it can be left behind when
+# VERSION changes.
+version=$(cat VERSION)
+vers="0x0${version%.*}, 0x${version#*.}, development, 0x00, verUS, \"$version\", \"$version, tico68\""
+grep -qF "$vers" src/mac/tico68.r ||
+    bad "the vers resource in src/mac/tico68.r doesn't match VERSION $version"
+
 # tico68 shows the Read Me as it is, so: CR line endings, plain ASCII so that
 # nothing depends on a font's high characters, and short enough for a window,
 # since lines don't wrap.

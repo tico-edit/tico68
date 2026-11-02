@@ -12,6 +12,27 @@ This is a first version. It is tested under Mini vMac (a Plus with 4 MB,
 on System 6 and 7.0.1) and has had a first, good run on a real Macintosh
 Plus. See [docs/TESTING.md](docs/TESTING.md).
 
+## Getting it
+
+[Releases](https://github.com/tico-edit/tico68/releases) has two ways in:
+
+| File | For |
+| --- | --- |
+| `tico68-800k.dsk` | A Floppy Emu or an emulator: an 800K HFS disk holding the application and a Read Me |
+| `tico68.sit` | A Mac that can reach an FTP server: a StuffIt archive of the same two files |
+
+To use the archive on the Mac:
+
+1. Download `tico68.sit` in **binary** mode, for instance with Fetch. Text
+   mode ruins it. It needs to arrive as type `SIT!`, which Fetch normally
+   sees to from the name: StuffIt Expander's dialog doesn't list a file
+   without that type, even though it's there.
+2. Start StuffIt Expander, choose File → Expand… and pick `tico68.sit`.
+3. Open the new `tico68 Folder`, which holds `tico68` and `ReadMe.txt`.
+
+Expander 4.0.1 is tested, under System 6 and 7.0.1. The archive is in the
+StuffIt 1.5.1 format, which other versions should read too.
+
 ## Using it
 
 Double-click tico68, or a document in the Finder. Each document has its
@@ -102,6 +123,7 @@ compiler for the host tests.
 
 ```
 make                     # build/mac/tico68-800k.dsk, plus tico68.bin
+make sit                 # build/mac/tico68.sit as well; fetches and builds sit
 make unit                # the portable code's tests, on the host
 make test                # those, then checks on the build
 make emu                 # drive the application under Mini vMac
@@ -114,9 +136,10 @@ plain HFS, for a Floppy Emu or an emulator: it holds the application and
 in tico68, so it is plain ASCII of at most 72 columns; when the keys,
 preferences or limits here change, change it too.
 
-To release, change `VERSION` in a PR. When it merges, the `release`
-workflow tags the merge commit `vVERSION` and publishes a release with
-the disk image attached.
+To release, change `VERSION` and the `vers` resource in
+`src/mac/tico68.r` in a PR; `make test` fails if they disagree. When it
+merges, the `release` workflow tags the merge commit `vVERSION` and
+publishes a release with the disk image and the StuffIt archive attached.
 
 ## Source
 
