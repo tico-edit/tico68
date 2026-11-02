@@ -25,7 +25,7 @@ HEADERS = src/tico.h
 
 all: build/mac/tico68-800k.dsk
 
-build/mac/Makefile: CMakeLists.txt
+build/mac/Makefile: CMakeLists.txt VERSION
 	cmake -S . -B build/mac -DCMAKE_TOOLCHAIN_FILE=$(TOOLCHAIN)
 
 build/mac/tico68-800k.dsk: build/mac/Makefile FORCE
